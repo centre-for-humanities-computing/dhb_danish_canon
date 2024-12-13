@@ -27,8 +27,6 @@ if len(use_cats) == 3:
         'CE_CANON': 'CANON'
     })
 
-    group_labels = ['Other', 'Historical', 'Canon']
-
     if len(df['CATEGORY'].unique()) == 3:
         print('--- using only 3 categories ---')
         print('Unique categories:', df['CATEGORY'].unique())
@@ -71,18 +69,11 @@ embeddings_df.head()
 
 embeddings_df['embedding'] = embeddings_df['embedding'].apply(np.array)
 
-# merge with df
-metadata = df.copy()
-
 # Merge datasets
-merged_df = pd.merge(metadata, embeddings_df, left_on='FILENAME', right_on='filename')
-
-# Create a new column 'classes' as a copy of 'CATEGORY'
-merged_df['classes'] = merged_df['CATEGORY']
-
+merged_df = pd.merge(df, embeddings_df, left_on='FILENAME', right_on='filename')
 
 # %%
-class_column = 'classes'
+class_column = 'CATEGORY'
 
 # Step 1: Find the minimum class size
 min_class_size = merged_df[class_column].value_counts().min()
@@ -103,7 +94,7 @@ print(balanced_df[class_column].value_counts())
 # %%
 # Extract features and target
 X = np.stack(balanced_df['embedding'].values)
-y = balanced_df['classes'].values
+y = balanced_df[class_column].values
 
 # Train/test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -139,7 +130,7 @@ balanced_df['PRICE'] = balanced_df['PRICE'].dropna()
 print(len(balanced_df))
 
 X = balanced_df['PRICE'].values.reshape(-1, 1)
-y = balanced_df['classes'].values
+y = balanced_df[class_column].values
 
 # Train/test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -160,7 +151,7 @@ price = balanced_df['PRICE'].values.reshape(-1, 1)  # Reshape PRICE into a 2D ar
 
 # Combine embeddings and PRICE into a single feature array
 X = np.hstack((embeddings, price))  # Horizontally stack embeddings and PRICE
-y = balanced_df['classes'].values
+y = balanced_df[class_column].values
 
 # Train/test split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -177,7 +168,7 @@ print(classification_report(y_test, y_pred))
 # %%
 from nltk.tokenize import sent_tokenize
 
-merged_df['AVG_SENTENCE_LENGTH'] = merged_df['TEXT'].apply(lambda x: np.mean([len(sent_tokenize(s)) for s in sent_tokenize(x)]))
+merged_df['avg_sentence_length'] = merged_df['TEXT'].apply(lambda x: np.mean([len(sent_tokenize(s)) for s in sent_tokenize(x)]))
 
 # %%
 
@@ -188,7 +179,7 @@ num_iterations = 20
 
 # Define feature combinations
 feature_combinations = {
-    'sentence length': lambda df: df['AVG_SENTENCE_LENGTH'].values.reshape(-1, 1),
+    'sentence length': lambda df: df['avg_sentence_length'].values.reshape(-1, 1),
     'embeddings': lambda df: np.stack(df['embedding'].values),
     'price': lambda df: df['PRICE'].values.reshape(-1, 1),
     'publisher': lambda df: publisher_encoder.fit_transform(df['PUBLISHER'].values.reshape(-1, 1)),
@@ -205,8 +196,6 @@ feature_combinations = {
 # Dictionary to store class-wise metrics for all feature combinations
 results = {feature_set: {} for feature_set in feature_combinations}
 
-# Column names for classes and features
-class_column = 'classes'
 
 # OneHotEncoder for the 'publisher' feature
 publisher_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
@@ -233,7 +222,7 @@ for feature_set_name, feature_set_func in feature_combinations.items():
 
         # Step 4: Create feature matrix and target array
         X = feature_set_func(balanced_df)
-        y = balanced_df['classes'].values
+        y = balanced_df[class_column].values
 
         # Train/test split
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=i)
