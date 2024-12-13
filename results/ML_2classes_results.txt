@@ -1,0 +1,112 @@
+Feature Set: avg_sentence_length
+  Class CANON:
+    Mean Precision: 0.485
+    Mean Recall: 0.777
+    Mean F1-Score: 0.519
+    ..
+    STD F1-Score: 0.226
+  Class O:
+    Mean Precision: 0.494
+    Mean Recall: 0.248
+    Mean F1-Score: 0.215
+    ..
+    STD F1-Score: 0.204
+
+Feature Set: embeddings
+  Class CANON:
+    Mean Precision: 0.700
+    Mean Recall: 0.787
+    Mean F1-Score: 0.731
+    ..
+    STD F1-Score: 0.099
+  Class O:
+    Mean Precision: 0.772
+    Mean Recall: 0.679
+    Mean F1-Score: 0.710
+    ..
+    STD F1-Score: 0.102
+
+Feature Set: price
+  Class CANON:
+    Mean Precision: 0.538
+    Mean Recall: 0.584
+    Mean F1-Score: 0.548
+    ..
+    STD F1-Score: 0.133
+  Class O:
+    Mean Precision: 0.582
+    Mean Recall: 0.529
+    Mean F1-Score: 0.540
+    ..
+    STD F1-Score: 0.126
+
+Feature Set: publisher
+  Class CANON:
+    Mean Precision: 0.652
+    Mean Recall: 0.940
+    Mean F1-Score: 0.765
+    ..
+    STD F1-Score: 0.102
+  Class O:
+    Mean Precision: 0.906
+    Mean Recall: 0.526
+    Mean F1-Score: 0.657
+    ..
+    STD F1-Score: 0.127
+
+Feature Set: embeddings_price
+  Class CANON:
+    Mean Precision: 0.695
+    Mean Recall: 0.791
+    Mean F1-Score: 0.730
+    ..
+    STD F1-Score: 0.097
+  Class O:
+    Mean Precision: 0.778
+    Mean Recall: 0.671
+    Mean F1-Score: 0.708
+    ..
+    STD F1-Score: 0.092
+
+Feature Set: embeddings_publisher
+  Class CANON:
+    Mean Precision: 0.696
+    Mean Recall: 0.776
+    Mean F1-Score: 0.721
+    ..
+    STD F1-Score: 0.118
+  Class O:
+    Mean Precision: 0.769
+    Mean Recall: 0.682
+    Mean F1-Score: 0.709
+    ..
+    STD F1-Score: 0.099
+
+Feature Set: publisher_price
+  Class CANON:
+    Mean Precision: 0.672
+    Mean Recall: 0.749
+    Mean F1-Score: 0.698
+    ..
+    STD F1-Score: 0.117
+  Class O:
+    Mean Precision: 0.735
+    Mean Recall: 0.647
+    Mean F1-Score: 0.677
+    ..
+    STD F1-Score: 0.127
+
+Feature Set: embeddings_publisher_price
+  Class CANON:
+    Mean Precision: 0.699
+    Mean Recall: 0.789
+    Mean F1-Score: 0.730
+    ..
+    STD F1-Score: 0.102
+  Class O:
+    Mean Precision: 0.776
+    Mean Recall: 0.677
+    Mean F1-Score: 0.711
+    ..
+    STD F1-Score: 0.091
+
