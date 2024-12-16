@@ -1,0 +1,27 @@
+# ignore old_notebooks
+old_notebooks/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node.js / NPM Dependencies
+node_modules/
+
+# Python virtual environment
+venv/
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+
+# Environment configuration files
+.env

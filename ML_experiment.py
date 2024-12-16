@@ -18,6 +18,7 @@ from sklearn.metrics import confusion_matrix
 from nltk.tokenize import sent_tokenize
 
 # %%
+# load the Memo-corpus dataset w. metadata
 ds = load_dataset("chcaa/memo-canonical-novels")
 # make df
 meta = pd.DataFrame(ds['train'])
@@ -44,7 +45,8 @@ if len(meta['CATEGORY'].unique()) == 3:
 
 
 # %%
-# Load the embeddings data
+# Load the embeddings data (previous work)
+# for embedding extraction, see: https://github.com/centre-for-humanities-computing/memo-canonical-novels
 with open('data/meanpool__intfloat__multilingual-e5-large-instruct_identify_author.json', 'r') as f:
     embeddings_data = [json.loads(line) for line in f]
 
@@ -62,13 +64,15 @@ merged_df = pd.merge(meta, embeddings_df, left_on='FILENAME', right_on='filename
 merged_df['avg_sentence_length'] = merged_df['TEXT'].apply(lambda x: np.mean([len(sent_tokenize(s)) for s in sent_tokenize(x)]))
 
 # %%
+# define the column used for the class labels
 class_column = 'CATEGORY'
 print(merged_df[class_column].value_counts())
 
 # define the testset size and the number of iterations
 test_size = 0.1
 num_iterations = 50
-print('test size:', test_size, 'num iterations:', num_iterations)
+print('test size:', test_size)
+print('num iterations:', num_iterations)
 
 # OneHotEncoder for the 'publisher' feature
 publisher_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
@@ -89,7 +93,7 @@ feature_combinations = {
                                                         df['PRICE'].values.reshape(-1, 1)])
 }
 
-print('number of feature combinations:', len(feature_combinations))
+print('number of feature combinations:', len(feature_combinations), ':', [x for x in feature_combinations.keys()])
 # %%
 # First ML run w 3 classes
 
@@ -110,13 +114,14 @@ for feature_set_name, feature_set_func in feature_combinations.items():
         min_class_size = merged_df[class_column].value_counts().min()
 
         # Step 2: Down-sample each class
-        balanced_df = (
-            merged_df.groupby(class_column)
-            .apply(lambda x: x.sample(n=min_class_size, random_state=i))  # Vary random_state
-            .reset_index(drop=True)
-        )
+        balanced_dfs = [
+            group.sample(n=min_class_size, random_state=i)  # Sample from each group
+            for _, group in merged_df.groupby(class_column)
+        ]
 
-        # Step 3: Shuffle the dataset
+        balanced_df = pd.concat(balanced_dfs, ignore_index=True)
+
+        # # Step 3: Shuffle the dataset
         balanced_df = balanced_df.sample(frac=1, random_state=i).reset_index(drop=True)
 
         # Step 4: Create feature matrix and target array
@@ -127,12 +132,12 @@ for feature_set_name, feature_set_func in feature_combinations.items():
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=i)
 
         # Train Random Forest Classifier
-        clf = RandomForestClassifier(n_estimators=100, random_state=i)
+        clf = RandomForestClassifier(n_estimators=100, random_state=i, class_weight='balanced')
         clf.fit(X_train, y_train)
 
         # Evaluate the model
         y_pred = clf.predict(X_test)
-        report = classification_report(y_test, y_pred, output_dict=True)  # Get report as a dictionary
+        report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)  # Get report as a dictionary
 
         # store results for the confusion matrix
         # Compute the confusion matrix for this iteration
@@ -235,7 +240,8 @@ print(df_two_classes[class_column].value_counts())
 
 # Dictionary to store class-wise metrics for all feature combinations
 results = {feature_set: {} for feature_set in feature_combinations}
-
+# dictionary to store results for the confusion matrix
+confusion_matrix_results = {feature_set: None for feature_set in feature_combinations}
 
 # OneHotEncoder for the 'publisher' feature
 publisher_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
@@ -253,14 +259,15 @@ for feature_set_name, feature_set_func in feature_combinations.items():
         # Step 1: Find the minimum class size
         min_class_size = df_two_classes[class_column].value_counts().min()
 
-        # Step 2: Down-sample each class
-        balanced_df = (
-            df_two_classes.groupby(class_column)
-            .apply(lambda x: x.sample(n=min_class_size, random_state=i))  # Vary random_state
-            .reset_index(drop=True)
-        )
+         # Step 2: Down-sample each class
+        balanced_dfs = [
+            group.sample(n=min_class_size, random_state=i)  # Sample from each group
+            for _, group in df_two_classes.groupby(class_column)
+        ]
 
-        # Step 3: Shuffle the dataset
+        balanced_df = pd.concat(balanced_dfs, ignore_index=True)
+
+        # # Step 3: Shuffle the dataset
         balanced_df = balanced_df.sample(frac=1, random_state=i).reset_index(drop=True)
 
         # Step 4: Create feature matrix and target array
@@ -276,7 +283,15 @@ for feature_set_name, feature_set_func in feature_combinations.items():
 
         # Evaluate the model
         y_pred = clf.predict(X_test)
-        report = classification_report(y_test, y_pred, output_dict=True)  # Get report as a dictionary
+        report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)  # Get report as a dictionary
+
+        # Generate confusion matrix
+        cm = confusion_matrix(y_test, y_pred)
+        # Accumulate confusion matrices
+        if confusion_matrix_results[feature_set_name] is None:
+            confusion_matrix_results[feature_set_name] = cm
+        else:
+            confusion_matrix_results[feature_set_name] += cm
 
         # Store class-wise scores
         for class_name, metrics in report.items():
@@ -300,6 +315,12 @@ for feature_set_name, feature_set_func in feature_combinations.items():
         }
         for class_name, scores in class_performance.items()
     }
+
+    # Average the confusion matrix across all iterations
+    confusion_matrix_results[feature_set_name] = (
+        confusion_matrix_results[feature_set_name] / num_iterations
+    )
+
 
 # %%
 # Display results
@@ -327,5 +348,20 @@ with open('results/ML_2classes_results.txt', 'w') as f:
             f.write('    ..\n')
             f.write(f"    STD F1-Score: {metrics['std_f1']:.3f}\n")
         f.write('\n')
-        
+
+# print the confusion matrix for the full feature set
+print('Confusion Matrix for the full feature set:')
+# use the two classes
+class_labels = sorted(df_two_classes['CATEGORY'].unique())  # Ensure labels match matrix order
+print(class_labels)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(
+    confusion_matrix_results['embeddings_publisher_price'],
+    annot=True,
+    cmap='Blues',
+    xticklabels=class_labels, 
+    yticklabels=class_labels
+)
+plt.savefig('figs/ML_2classes_confusion_matrix.png')
 # %%
